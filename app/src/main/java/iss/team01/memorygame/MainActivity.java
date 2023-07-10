@@ -46,28 +46,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button scrapeBtn;
 
     private EditText inputURL;
-    private ImageButton imageButton1;
+    private Button startBtn;
     private TextView downloadText;
     private int[] imageButtons = new int[]{R.id.imageButton1, R.id.imageButton2, R.id.imageButton3, R.id.imageButton4, R.id.imageButton5, R.id.imageButton6, R.id.imageButton7, R.id.imageButton8, R.id.imageButton9, R.id.imageButton10, R.id.imageButton11, R.id.imageButton12, R.id.imageButton13, R.id.imageButton14, R.id.imageButton15, R.id.imageButton16, R.id.imageButton17, R.id.imageButton18, R.id.imageButton19, R.id.imageButton20};
     private boolean[] imageButtonsFlag = new boolean[20];
+    private boolean startFlag;
     private int[] chooseImage = new int[6];
     private int count = 0;
+    List<String> imageUrls = new ArrayList<>();
+    List<File> destFile= new ArrayList<>();
+    ArrayList chooseImageLocations = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         downloadText = this.findViewById(R.id.textView);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);//Achieve full screen
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //Achieve full screen
+        startBtn = findViewById(R.id.startBtn);
         inputURL = findViewById(R.id.editText1);
         scrapeBtn = findViewById(R.id.scrapeBtn);
 
-        setButton();
         // button to start scraper
         scrapeBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                count = 0;
                 if(isHttpUrl(inputURL.getText().toString())) {
+                    chooseImageLocations.clear();
+                    count = 0;
+                    setButton();
+                    startFlag = true;
                     Toast.makeText(MainActivity.this, "Downloading", Toast.LENGTH_SHORT).show();
                     downloadText.setText(0 + " of 20");
                     startDownloadImage(inputURL.getText().toString());
@@ -77,12 +85,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         });
-
-
-
+        startBtn.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View view){
+                if(count == 6) {
+                    Intent intent = new Intent(MainActivity.this,MemoryGameActivity.class);
+                    intent.putStringArrayListExtra("imageUrls", chooseImageLocations);
+                    startActivity(intent);
+                }
+            }
+        });
     }
 
     public void setButton(){
+        for(int i = 0; i < chooseImage.length; i++){
+            chooseImage[i] = 0;
+        }
         for (int i = 0; i < imageButtons.length; i++) {
             ImageButton btn = findViewById(imageButtons[i]);
             if (btn != null) {
@@ -93,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public void onClick(View view) {
         int id = view.getId();
-        if (id != R.id.scrapeBtn){
+        if ((id != R.id.scrapeBtn) && (startFlag == true)){
             ImageButton imageButton = findViewById(id);
             boolean flag = true;
             for(int i = 0; i < 6; i++){
@@ -104,19 +121,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 imageButton.setImageResource(R.drawable.dodo);
                 chooseImage[count] = id;
                 count++;
+                for (int i = 0; i < imageButtons.length; i++) {
+                    if(id == imageButtons[i])
+                        chooseImageLocations.add(destFile.get(i).getAbsolutePath());
+                }
+                if(count ==6)
+                    startBtn.setBackgroundColor(Color.rgb(50, 186, 192));
             }
-            else if (count == 6)
+            else if (count == 6){
                 Toast.makeText(MainActivity.this, "You have selected a sufficient number of images", Toast.LENGTH_SHORT).show();
+            }
             else
                 Toast.makeText(MainActivity.this, "You have selected this images", Toast.LENGTH_SHORT).show();
         }
     }
 
     protected void startDownloadImage(String imgURL) {
-
-        List<String> imageUrls = new ArrayList<>();
+        imageUrls.clear();
+        destFile.clear();
         List<String> destFilename = new ArrayList<>();
-        List<File> destFile= new ArrayList<>();
         File dir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         for(int i = 0; i < 20; i++){
             destFilename.add(UUID.randomUUID().toString() +
@@ -161,8 +184,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             @Override
                             public void run() {
                                 Bitmap bitmap = BitmapFactory.decodeFile(destFile.get(finalI).getAbsolutePath());
-                                ImageButton imageView = findViewById(imageButtons[finalI]);
-                                imageView.setImageBitmap(bitmap);
+                                ImageButton imageButton = findViewById(imageButtons[finalI]);
+                                imageButton.setImageBitmap(bitmap);
                                 downloadText.setText(finalI + 1 + " of 20");
                                 imageButtonsFlag[finalI] = true;
                                 if(finalI == 19)
